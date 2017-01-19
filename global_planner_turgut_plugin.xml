@@ -1,0 +1,5 @@
+<library path="lib/libglobal_planner_turgut_lib">
+ <class name="global_planner_turgut/GlobalPlannerTurgut" type="global_planner_turgut::GlobalPlannerTurgut" base_class_type="nav_core::BaseGlobalPlanner">
+   <description>PhEnim gLobAl pEth 8ulucum xD xD xD</description>
+ </class>
+</library>
