@@ -52,11 +52,16 @@ namespace global_planner_turgut
 
 	    int visited_map[GRID_WH][GRID_WH][GRID_TH];
 
+	    int cost_grid[GRID_WH][GRID_WH];
+	    int nav_grid[GRID_WH][GRID_WH];
+
+	    
 
 
 	public:
 
-	    float *potential_array;
+	    std::vector<std::pair<float, float> > grid_road;
+
 	    costmap_2d::Costmap2D* costmap_;
 
 
@@ -103,6 +108,133 @@ namespace global_planner_turgut
 
 	    }
 
+	    void grid_astar(const geometry_msgs::Pose &start, const geometry_msgs::Pose &goal)
+	    {
+	    	grid_road.clear();
+
+	    	for(int i = 0; i<GRID_WH; i++)
+	    		for(int j = 0; j<GRID_WH; j++) nav_grid[i][j] = -1;
+
+	    	int goal_x =(goal.position.x/10.0)*GRID_WH + GRID_WH/2.0;
+	    	int goal_y =(goal.position.y/10.0)*GRID_WH + GRID_WH/2.0;
+
+	    	std::vector<node> nodes;
+	    	node starting_node;
+	    	starting_node.result_x = (start.position.x/10.0)*GRID_WH + GRID_WH/2.0;
+	    	starting_node.result_y = (start.position.y/10.0)*GRID_WH + GRID_WH/2.0;
+	    	starting_node.id = 0;
+	    	starting_node.end = true;
+	    	starting_node.cost = 0;
+	    	starting_node.parent_id = -1;
+	    	starting_node.potential = - (goal_y - starting_node.result_y + goal_x - starting_node.result_x); 
+	    	nodes.push_back(starting_node);
+	    	nav_grid[int(starting_node.result_x)][int(starting_node.result_y)] = 0;
+
+	    	const char x_step[8]={-1, 0, 1, -1, 1, -1, 0, 1};
+	    	const char y_step[8]={1, 1, 1, 0, 0, -1, -1, -1};
+
+	    	char stat = 0;
+	    	int lim = 0;
+	    	int reached_node = 0;
+	    	while(lim++ <50000)
+	    	{
+	    		int best = -1;
+	    		float best_p = -99999;
+	    		for(int i = 0; i<nodes.size(); i++)
+	    		{
+	    			if(nodes[i].end)
+	    			{
+	    				if(nodes[i].cost + nodes[i].potential > best_p)
+	    				{
+	    					best = i;
+	    					best_p = nodes[i].cost + nodes[i].potential;
+	    				}
+	    			}
+
+	    		}
+
+	    		std::cout<<"best: "<<best<<"\n";
+
+	    		if(best == -1)
+	    		{
+	    			stat = -1;
+	    			break;
+	    		}
+
+	    		if(nodes[best].result_x == goal_x && nodes[best].result_y == goal_y)
+	    		{
+	    			std::cout << "found \n";
+	    			stat = 1;
+	    			reached_node = best;
+	    			break;
+	    		}
+
+	    		nodes[best].end = 0;
+
+	    		for(int i=0; i<8; i++)
+	    		{
+	    			int x = nodes[best].result_x + x_step[i];
+	    			int y = nodes[best].result_y + y_step[i];
+
+	    			float cost = nodes[best].cost - sqrt(pow(x_step[i], 2) + pow(y_step[i], 2));
+	    			float potential = - sqrt(pow(goal_y -y,2) + pow(goal_x - x, 2));
+	    			//float potential= 0;
+
+	    			float x_world = ((x)-GRID_WH/2.0)*10.0/GRID_WH;
+	    			float y_world = ((y)-GRID_WH/2.0)*10.0/GRID_WH;
+	    			unsigned int xi, yi;
+	    			costmap_->worldToMap(x_world, y_world, xi, yi);
+
+	    			if(costmap_->getCost(xi, yi) > 100) continue;
+
+	    			if(x>=0 && x<GRID_WH && y>=0 && y<GRID_WH)
+	    			{
+	    				if(nav_grid[x][y] == -1 || nodes[nav_grid[x][y]].cost < cost)
+	    				{
+	    					
+	    					node child;
+	    					child.result_x = x;
+	    					child.result_y = y;
+	    					child.potential = potential;
+	    					child.parent_id = best;
+	    					child.id = nodes.size();
+	    					nav_grid[x][y] = child.id;
+	    					child.end = true;
+	    					child.cost = cost;
+	    					nodes.push_back(child);
+	    					nodes[best].children_ids.push_back(child.id);
+	    					std::cout<<best<<" > "<<child.id<<" "<< child.result_x << " " << child.result_y<<"\n";
+	    				}
+	    			}
+
+	    		}
+
+	    	}
+
+
+
+
+	    	int n = reached_node;
+	    	while(1)
+	    	{
+	    		if(n==-1) break;
+	    		std::pair<float, float> coord;
+
+	    		float x_world = ((nodes[n].result_x)-GRID_WH/2.0)*10.0/GRID_WH;
+	    		float y_world = ((nodes[n].result_y)-GRID_WH/2.0)*10.0/GRID_WH;
+	    		coord.first = x_world;
+	    		coord.second = y_world;
+
+	    		grid_road.push_back(coord);
+
+	    		n=nodes[n].parent_id;
+
+	    	}
+
+	    	std::reverse(grid_road.begin(), grid_road.end());
+
+	    }
+
 	    void init_starting_pose(geometry_msgs::Pose p)
 	    {
 
@@ -137,6 +269,8 @@ namespace global_planner_turgut
 	        node_vector[0].result_theta = round(tf::getYaw(p.orientation)/(M_PI/15.0))*(M_PI/15.0);
 	        node_vector[0].result_x = p.position.x;
 	        node_vector[0].result_y = p.position.y;
+
+	        set_visited_map(node_vector[0].result_x, node_vector[0].result_y, node_vector[0].result_theta, 0);
 
 /*	        //add one front and one back
 	        node second_step;
@@ -292,12 +426,51 @@ namespace global_planner_turgut
 	            	
 	            	);
 
+	            int nearest_grid_road_waypoint=-1;
+	            int second_nearest_grw = -1;
+	            float distance_to_nearest_grid_road_waypoint= 9999999;
+	            float distance_to_sngrw = 9999999;
+	            for(int i = 0; i<grid_road.size(); i++)
+	            {
+	            	float dis = sqrt(pow(grid_road[i].first - child.result_x, 2) + pow(grid_road[i].second - child.result_y, 2));
+
+	            	if(dis < distance_to_nearest_grid_road_waypoint)
+	            	{
+	            		second_nearest_grw = nearest_grid_road_waypoint;
+	            		distance_to_sngrw = distance_to_nearest_grid_road_waypoint;
+	            		nearest_grid_road_waypoint = i;
+	            		distance_to_nearest_grid_road_waypoint = dis;
+	            	}
+	            }
+
+
+
 	            double yaw;
 	            yaw = child.result_theta;
 	           
+	            child.potential = 0;
+	            //child.potential = -distance_to_goal ;
 
-	            child.potential = -distance_to_goal ;
+	            if(nearest_grid_road_waypoint != -1 && second_nearest_grw != -1)
+	            {
+	            	float t1 = atan(
+	            		(grid_road[nearest_grid_road_waypoint].second - grid_road[second_nearest_grw].second)
+	            		/
+	            		(grid_road[nearest_grid_road_waypoint].first - grid_road[second_nearest_grw].first));
 
+	            	float t2 = atan(
+	            		(grid_road[nearest_grid_road_waypoint].second - child.result_y)
+	            		/
+	            		(grid_road[nearest_grid_road_waypoint].first - child.result_x));
+
+	            	float h = fabs(sin(t1 - t2)*distance_to_nearest_grid_road_waypoint);
+	            	float p1_p2_dist = sqrt(pow(grid_road[nearest_grid_road_waypoint].first - grid_road[second_nearest_grw].first, 2) + pow(grid_road[nearest_grid_road_waypoint].second - grid_road[second_nearest_grw].second, 2));
+	            	float c = cos(t1 - t2)*distance_to_nearest_grid_road_waypoint / p1_p2_dist;
+
+	            	if(distance_to_nearest_grid_road_waypoint<0.5)
+	            		child.potential += 0.1*(nearest_grid_road_waypoint*distance_to_sngrw + second_nearest_grw*distance_to_nearest_grid_road_waypoint)/(distance_to_sngrw+distance_to_nearest_grid_road_waypoint);
+	            	else child.potential -= 1;
+	            }
 	            //child.potential-= fabs(theta1);
 
 

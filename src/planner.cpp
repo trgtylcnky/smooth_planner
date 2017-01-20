@@ -59,6 +59,8 @@ namespace global_planner_turgut
 		
 		tree.costmap_ = costmap_;
 		
+		tree.grid_astar(start.pose, goal.pose);
+
 		
 		visualization_msgs::Marker tree_marker;
 		tree_marker.header.frame_id = "/map";
@@ -68,11 +70,39 @@ namespace global_planner_turgut
 		tree_marker.color.r = 1.0f;
 		tree_marker.color.a = 0.7f;
 
+		/*
+
+		marker_pub.publish(tree_marker);
+*/
+		nav_msgs::Path gui_path2;
+		gui_path2.poses.resize(tree.grid_road.size());
+
+		gui_path2.header.frame_id = "/map";
+		gui_path2.header.stamp = ros::Time::now();
+
+		    // Extract the plan in world co-ordinates, we assume the path is all in the same frame
+		for (unsigned int i = 0; i < tree.grid_road.size(); i++) {
+			gui_path2.poses[i].header.stamp = ros::Time::now();
+			gui_path2.poses[i].header.frame_id = "/map";
+			gui_path2.poses[i].pose.position.x = tree.grid_road[i].first;
+			gui_path2.poses[i].pose.position.y = tree.grid_road[i].second;
+			gui_path2.poses[i].pose.position.z = 0;
+			gui_path2.poses[i].pose.orientation.x = 0;
+			gui_path2.poses[i].pose.orientation.y = 0;
+			gui_path2.poses[i].pose.orientation.z = 0;
+			gui_path2.poses[i].pose.orientation.w = 1;
+
+
+		}
+
+		plan_pub_2.publish(gui_path2);
+
+
 		int best_start_to_end ;
 		
 		int lim = 0;
 		char stat = 0;
-		while(lim++<50000 )
+		while(lim++<5000 )
 		{
 			
 			best_start_to_end = tree.find_best_end(goal);
