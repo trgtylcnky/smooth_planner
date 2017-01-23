@@ -104,7 +104,7 @@ namespace global_planner_turgut
 		
 		int lim = 0;
 		char stat = 0;
-		while(lim++<5000 )
+		while(lim++<10000 )
 		{
 			
 			best_start_to_end = tree.find_best_end(goal);

@@ -34,8 +34,6 @@ namespace global_planner_turgut
 	const float prim_theta[NUM_OF_PRIMS] = {0, -M_PI/15, M_PI/15, 0, -M_PI/15, M_PI/15, -M_PI/12, M_PI/12};
 	const float prim_cost[NUM_OF_PRIMS] = {0.1, 0.12, 0.12, 0.10, 0.12, 0.12, 10, 10};
 
-	#define GRID_WH 200
-	#define GRID_TH 30
 
 	class Tree
 	{
@@ -123,7 +121,7 @@ namespace global_planner_turgut
 	    	map_origin_x = costmap_->getOriginX();
 	    	map_origin_y = costmap_->getOriginY();
 	    	grid_resolution_xy = 0.05;
-	    	grid_resolution_theta = M_PI/15;
+	    	grid_resolution_theta = M_PI/30;
 	    	grid_width_x = map_width / grid_resolution_xy;
 	    	grid_width_y = map_height / grid_resolution_xy;
 	    	grid_width_theta = 2*M_PI/grid_resolution_theta;
@@ -206,7 +204,7 @@ namespace global_planner_turgut
 
 	    		}
 
-	    		std::cout<<"best: "<<best<<"\n";
+	    		//std::cout<<"best: "<<best<<"\n";
 
 	    		if(best == -1)
 	    		{
@@ -257,7 +255,7 @@ namespace global_planner_turgut
 	    					nodes.push_back(child);
 	    					nav_grid[x][y] = child.id;
 	    					nodes[best].children_ids.push_back(child.id);
-	    					std::cout<<best<<" > "<<child.id<<" "<< child.result_x << " " << child.result_y<<"\n";
+	    					//std::cout<<best<<" > "<<child.id<<" "<< child.result_x << " " << child.result_y<<"\n";
 	    				}
 	    			}
 
@@ -292,15 +290,12 @@ namespace global_planner_turgut
 
 	    	}
 
-	    	std::cout<<"grid 1";
 
 	    }
 
 	    void init_starting_pose(geometry_msgs::Pose p)
 	    {
 	    	approach = false;
-
-	    	std::cout << "init_starting_pose 1";
 
 	    	node_vector.clear();
 	    	final_node = 0;
@@ -322,7 +317,7 @@ namespace global_planner_turgut
 	    	node_vector.push_back(starting_node);
 
 	    	xy_samethingness_threshold = 0.05;
-	    	theta_samethingness_threshold = 0.05;
+	    	theta_samethingness_threshold = 0.025;
 
 
 
@@ -431,7 +426,7 @@ namespace global_planner_turgut
 	            	double t = node_vector[node_id].result_theta - tf::getYaw(goal.pose.orientation);
 	            	if(t > M_PI) t = t - 2*M_PI;
 	            	else if(t < -M_PI) t = t + 2*M_PI;
-	            	if(fabs(t) < 0.05)
+	            	if(fabs(t) < 0.1)
 	            	{	                
 	            		final_node = node_id;
 	            		//std::cout << "reached to goal, interrupted\n";
@@ -493,7 +488,9 @@ namespace global_planner_turgut
 	        	if(theta1 > M_PI)  theta1-=2*M_PI;
 	        	else if(theta1 < -M_PI) theta1+=2*M_PI;
 
-
+	        	float dx = child.result_x - goal.pose.position.x;
+	        	float dy = child.result_y - goal.pose.position.y;
+	        	float y1 = -sin(child.result_theta)*dx + cos(child.result_theta)*dy;
 
 	            float distance_to_goal = sqrt(
 	            	pow(goal.pose.position.x - child.result_x, 2)
@@ -501,9 +498,10 @@ namespace global_planner_turgut
 	            	
 	            	);
 
-	            if(distance_to_goal < 0.8 && !approach) 
+	            if(distance_to_goal < 0.5 && !approach) 
 	            {
 	            	approach = true;
+	            	//for(int asd = 0; asd < node_vector.size(); asd++) node_vector[asd].end = false;
 
 	            }
 
@@ -524,9 +522,6 @@ namespace global_planner_turgut
 	            	}
 	            }
 
-	            double yaw;
-	            yaw = child.result_theta;
-	           
 	            child.potential = 0;
 	            //child.potential = -distance_to_goal ;
 
@@ -542,13 +537,12 @@ namespace global_planner_turgut
 	            if(nearest_grid_road_waypoint != -1 && second_nearest_grw != -1)
 	            {
 	            	if(distance_to_nearest_grid_road_waypoint<0.5)
-	            		child.potential += 0.1*(-fabs(theta1) + nearest_grid_road_waypoint*distance_to_sngrw + second_nearest_grw*distance_to_nearest_grid_road_waypoint)/(distance_to_sngrw+distance_to_nearest_grid_road_waypoint);
+	            		child.potential += 0.1*( nearest_grid_road_waypoint*distance_to_sngrw + second_nearest_grw*distance_to_nearest_grid_road_waypoint)/(distance_to_sngrw+distance_to_nearest_grid_road_waypoint);
 	            	else child.potential -= 1;
 	            }
 
-
-
-	            //if(approach) child.potential = - distance_to_goal -fabs(theta1);
+	            child.potential += 1/(1+distance_to_goal*fabs(theta1));
+	            
 	            // float look_x;
 
 	            // for(look_x = 0; look_x< 0.25; look_x+=0.05)
@@ -641,8 +635,8 @@ namespace global_planner_turgut
 	    		
 	    	while(distance_between_centers < 2*r)
 	    	{
-	    		c2_x -= 0.01*cos(a2);
-	    		c2_y -= 0.01*sin(a2);
+	    		c2_x += 0.01*cos(a2);
+	    		c2_y += 0.01*sin(a2);
 
 	    		distance_between_centers = sqrt(pow(c1_x - c2_x, 2) + pow(c1_y - c2_y, 2));
 	    	}
