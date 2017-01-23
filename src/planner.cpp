@@ -39,6 +39,8 @@ namespace global_planner_turgut
 
 		plan_pub_2 = nh.advertise<nav_msgs::Path>("plan2", 10);
 
+		tree.initialize(costmap_);
+
 
 	}
 

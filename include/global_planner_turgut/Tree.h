@@ -49,11 +49,24 @@ namespace global_planner_turgut
 
 	    int path_point;
 
+	    float map_width;
+	    float map_height;
 
-	    int visited_map[GRID_WH][GRID_WH][GRID_TH];
+	    float map_origin_x;
+	    float map_origin_y;
 
-	    int cost_grid[GRID_WH][GRID_WH];
-	    int nav_grid[GRID_WH][GRID_WH];
+	    float grid_resolution_xy;
+	    float grid_resolution_theta;
+
+	    int grid_width_x;
+	    int grid_width_y;
+	    int grid_width_theta;
+
+	    bool approach;
+
+	    std::vector<std::vector<std::vector<int> > > visited_map;
+
+	    std::vector<std::vector<int> > nav_grid;
 
 	    
 
@@ -63,9 +76,6 @@ namespace global_planner_turgut
 	    std::vector<std::pair<float, float> > grid_road;
 
 	    costmap_2d::Costmap2D* costmap_;
-
-
-
 
 	    Tree()
 	    {
@@ -103,30 +113,73 @@ namespace global_planner_turgut
 	        starting_node.id = 0;
 
 	        starting_node.end = false;
-
-
-
 	    }
 
+	    void initialize(costmap_2d::Costmap2D* costmap)
+	    {
+	    	costmap_ = costmap;
+	    	map_width = costmap_->getSizeInMetersX();
+	    	map_height = costmap_->getSizeInMetersY();
+	    	map_origin_x = costmap_->getOriginX();
+	    	map_origin_y = costmap_->getOriginY();
+	    	grid_resolution_xy = 0.05;
+	    	grid_resolution_theta = M_PI/15;
+	    	grid_width_x = map_width / grid_resolution_xy;
+	    	grid_width_y = map_height / grid_resolution_xy;
+	    	grid_width_theta = 2*M_PI/grid_resolution_theta;
+
+	    	visited_map.resize(grid_width_x);
+	    	for(int i = 0; i< grid_width_x; i++)
+	    	{
+	    		visited_map[i].resize(grid_width_y);
+	    		for(int j = 0; j<grid_width_y; j++)
+	    		{
+	    			visited_map[i][j].resize(grid_width_theta);
+
+	    			for(int k = 0; k<grid_width_theta; k++) visited_map[i][j][k] = -1;
+	    		}
+	    	}
+
+	    	for(int i = 0; i<grid_width_x; i++)
+	    	{
+	    		std::vector<int> v;
+
+	    		for(int j = 0; j<grid_width_y; j++) 
+	    		{
+	    			
+	    			v.push_back(-1);	    			
+	    		}
+	    		nav_grid.push_back(v);
+	    	}
+
+	    }
 	    void grid_astar(const geometry_msgs::Pose &start, const geometry_msgs::Pose &goal)
 	    {
-	    	grid_road.clear();
+	    	grid_road.clear();	    	
 
-	    	for(int i = 0; i<GRID_WH; i++)
-	    		for(int j = 0; j<GRID_WH; j++) nav_grid[i][j] = -1;
+	    	for(int i = 0; i<grid_width_x; i++)
+	    	{
+	    		for(int j = 0; j<grid_width_y; j++) 
+	    		{
+  					nav_grid[i][j] = -1;
+	    		}
 
-	    	int goal_x =(goal.position.x/10.0)*GRID_WH + GRID_WH/2.0;
-	    	int goal_y =(goal.position.y/10.0)*GRID_WH + GRID_WH/2.0;
+	    	}
+
+
+
+	    	int goal_x =(goal.position.x - map_origin_x)/grid_resolution_xy;
+	    	int goal_y =(goal.position.y - map_origin_y)/grid_resolution_xy;
 
 	    	std::vector<node> nodes;
 	    	node starting_node;
-	    	starting_node.result_x = (start.position.x/10.0)*GRID_WH + GRID_WH/2.0;
-	    	starting_node.result_y = (start.position.y/10.0)*GRID_WH + GRID_WH/2.0;
+	    	starting_node.result_x = (start.position.x - map_origin_x)/grid_resolution_xy;
+	    	starting_node.result_y = (start.position.y - map_origin_y)/grid_resolution_xy;
 	    	starting_node.id = 0;
 	    	starting_node.end = true;
 	    	starting_node.cost = 0;
 	    	starting_node.parent_id = -1;
-	    	starting_node.potential = - (goal_y - starting_node.result_y + goal_x - starting_node.result_x); 
+	    	starting_node.potential = - sqrt(pow(goal_y - starting_node.result_y,2) + pow(goal_x - starting_node.result_x, 2)); 
 	    	nodes.push_back(starting_node);
 	    	nav_grid[int(starting_node.result_x)][int(starting_node.result_y)] = 0;
 
@@ -157,6 +210,7 @@ namespace global_planner_turgut
 
 	    		if(best == -1)
 	    		{
+	    			reached_node = -1;
 	    			stat = -1;
 	    			break;
 	    		}
@@ -180,14 +234,14 @@ namespace global_planner_turgut
 	    			float potential = - sqrt(pow(goal_y -y,2) + pow(goal_x - x, 2));
 	    			//float potential= 0;
 
-	    			float x_world = ((x)-GRID_WH/2.0)*10.0/GRID_WH;
-	    			float y_world = ((y)-GRID_WH/2.0)*10.0/GRID_WH;
+	    			float x_world = x*grid_resolution_xy + map_origin_x;
+	    			float y_world = y*grid_resolution_xy + map_origin_y;
 	    			unsigned int xi, yi;
 	    			costmap_->worldToMap(x_world, y_world, xi, yi);
 
 	    			if(costmap_->getCost(xi, yi) > 100) continue;
 
-	    			if(x>=0 && x<GRID_WH && y>=0 && y<GRID_WH)
+	    			if(x>=0 && x<grid_width_x && y>=0 && y<grid_width_y)
 	    			{
 	    				if(nav_grid[x][y] == -1 || nodes[nav_grid[x][y]].cost < cost)
 	    				{
@@ -196,12 +250,12 @@ namespace global_planner_turgut
 	    					child.result_x = x;
 	    					child.result_y = y;
 	    					child.potential = potential;
-	    					child.parent_id = best;
-	    					child.id = nodes.size();
-	    					nav_grid[x][y] = child.id;
+	    					child.parent_id = best;	    					
 	    					child.end = true;
 	    					child.cost = cost;
+	    					child.id = nodes.size();
 	    					nodes.push_back(child);
+	    					nav_grid[x][y] = child.id;
 	    					nodes[best].children_ids.push_back(child.id);
 	    					std::cout<<best<<" > "<<child.id<<" "<< child.result_x << " " << child.result_y<<"\n";
 	    				}
@@ -215,32 +269,38 @@ namespace global_planner_turgut
 
 
 	    	int n = reached_node;
-	    	while(1)
+
+	    	if(stat == 1)
 	    	{
-	    		if(n==-1) break;
-	    		std::pair<float, float> coord;
+	    		while(1)
+	    		{
+	    			if(n==-1) break;
+	    			std::pair<float, float> coord;
 
-	    		float x_world = ((nodes[n].result_x)-GRID_WH/2.0)*10.0/GRID_WH;
-	    		float y_world = ((nodes[n].result_y)-GRID_WH/2.0)*10.0/GRID_WH;
-	    		coord.first = x_world;
-	    		coord.second = y_world;
+	    			float x_world = (nodes[n].result_x)*grid_resolution_xy + map_origin_x;
+	    			float y_world = (nodes[n].result_y)*grid_resolution_xy + map_origin_y;
+	    			coord.first = x_world;
+	    			coord.second = y_world;
 
-	    		grid_road.push_back(coord);
+	    			grid_road.push_back(coord);
 
-	    		n=nodes[n].parent_id;
+	    			n=nodes[n].parent_id;
+
+	    		}
+
+	    		std::reverse(grid_road.begin(), grid_road.end());
 
 	    	}
 
-	    	std::reverse(grid_road.begin(), grid_road.end());
+	    	std::cout<<"grid 1";
 
 	    }
 
 	    void init_starting_pose(geometry_msgs::Pose p)
 	    {
+	    	approach = false;
 
-	    	for(int i = 0; i< GRID_WH; i++)
-	    		for(int j = 0; j<GRID_WH; j++)
-	    			for(int k = 0; k<GRID_TH; k++) visited_map[i][j][k] = -1;
+	    	std::cout << "init_starting_pose 1";
 
 	    	node_vector.clear();
 	    	final_node = 0;
@@ -270,7 +330,17 @@ namespace global_planner_turgut
 	        node_vector[0].result_x = p.position.x;
 	        node_vector[0].result_y = p.position.y;
 
+	        for(int i = 0; i< grid_width_x; i++)
+	        {
+	        	for(int j = 0; j<grid_width_y; j++)
+	        	{
+	        		for(int k = 0; k<grid_width_theta; k++) visited_map[i][j][k] = -1;
+	        	}
+	        }
+
+
 	        set_visited_map(node_vector[0].result_x, node_vector[0].result_y, node_vector[0].result_theta, 0);
+
 
 /*	        //add one front and one back
 	        node second_step;
@@ -308,13 +378,13 @@ namespace global_planner_turgut
 
 	    void set_visited_map(float x, float y, float theta, int node_id)
 	    {
-	    	int mx = (x/10.0)*GRID_WH + GRID_WH/2;
-	    	int my = (y/10.0)*GRID_WH + GRID_WH/2;
-	    	int mtheta = (theta/(2*M_PI))*GRID_TH + GRID_TH/2;
+	    	int mx = (x - map_origin_x)/grid_resolution_xy;
+	    	int my = (y - map_origin_y)/grid_resolution_xy;
+	    	int mtheta = (theta + M_PI)/grid_resolution_theta;
 
-	    	if(mx >=0 && mx < GRID_WH
-	    		&& my >=0 && my < GRID_WH
-	    		&& mtheta >=0 && mtheta < GRID_TH
+	    	if(mx >=0 && mx < grid_width_x
+	    		&& my >=0 && my < grid_width_y
+	    		&& mtheta >=0 && mtheta < grid_width_theta
 	    		)
 	    		visited_map[mx][my][mtheta] = node_id;
 
@@ -322,15 +392,15 @@ namespace global_planner_turgut
 
 	    int get_visited_map(float x, float y, float theta)
 	    {
-	    	int mx = (x/10.0)*GRID_WH + GRID_WH/2;
-	    	int my = (y/10.0)*GRID_WH + GRID_WH/2;
-	    	int mtheta = (theta/(2*M_PI))*GRID_TH + GRID_TH/2;
+	    	int mx = (x - map_origin_x)/grid_resolution_xy;
+	    	int my = (y - map_origin_y)/grid_resolution_xy;
+	    	int mtheta = (theta + M_PI)/grid_resolution_theta;
 
 	    	//std::cout <<mx <<" "<<my << " "<<mtheta<<"\n";
 
-	    	if(mx >=0 && mx < GRID_WH
-	    		&& my >=0 && my < GRID_WH
-	    		&& mtheta >=0 && mtheta < GRID_TH
+	    	if(mx >=0 && mx < grid_width_x
+	    		&& my >=0 && my < grid_width_y
+	    		&& mtheta >=0 && mtheta < grid_width_theta
 	    		)
 	    		return visited_map[mx][my][mtheta];
 
@@ -390,7 +460,12 @@ namespace global_planner_turgut
 
 
 	            costmap_->worldToMap(child.result_x, child.result_y, xi, yi);
-	            if(costmap_->getCost(xi,yi) > 100){
+	            if(costmap_->getCost(xi,yi) > 100
+	            	|| costmap_->getCost(xi+2,yi+2) > 100
+	            	|| costmap_->getCost(xi-2,yi-2) > 100
+	            	|| costmap_->getCost(xi+2,yi-2) > 100
+	            	|| costmap_->getCost(xi-2,yi+2) > 100
+	            	){
 	            	// int parent=node_vector[node_id].parent_id;
 	            	// for(char p=0; p<5; p++)
 	            	// {
@@ -426,6 +501,15 @@ namespace global_planner_turgut
 	            	
 	            	);
 
+	            if(distance_to_goal < 0.8 && !approach) 
+	            {
+	            	approach = true;
+	            	for(int i = 0; i<node_vector.size(); i++)
+	            	{
+	            		node_vector[i].end = false;
+	            	}
+	            }
+
 	            int nearest_grid_road_waypoint=-1;
 	            int second_nearest_grw = -1;
 	            float distance_to_nearest_grid_road_waypoint= 9999999;
@@ -442,8 +526,6 @@ namespace global_planner_turgut
 	            		distance_to_nearest_grid_road_waypoint = dis;
 	            	}
 	            }
-
-
 
 	            double yaw;
 	            yaw = child.result_theta;
@@ -471,9 +553,10 @@ namespace global_planner_turgut
 	            		child.potential += 0.1*(nearest_grid_road_waypoint*distance_to_sngrw + second_nearest_grw*distance_to_nearest_grid_road_waypoint)/(distance_to_sngrw+distance_to_nearest_grid_road_waypoint);
 	            	else child.potential -= 1;
 	            }
+
 	            //child.potential-= fabs(theta1);
 
-
+	            if(approach) child.potential = - distance_to_goal -2*fabs(theta1);
 	            // float look_x;
 
 	            // for(look_x = 0; look_x< 0.25; look_x+=0.05)
@@ -515,20 +598,6 @@ namespace global_planner_turgut
 	            	else samethingness = true;
 	            }
 
-/*	            for(int i=0; i<node_vector.size(); i++)
-	            {
-	                if(fabs(node_vector[i].result_x - child.result_x) < xy_samethingness_threshold
-	                    && fabs(node_vector[i].result_y - child.result_y) < xy_samethingness_threshold
-	                    && fabs(node_vector[i].result_theta - child.result_theta) < theta_samethingness_threshold) {
-	                    if(node_vector[i].cost < child.cost)
-	                    {
-
-	                        remove_children(i);
-
-	                    }
-	                    else samethingness = true;
-	                }
-	            }*/
 
 	            if(!samethingness)
 	            {   
