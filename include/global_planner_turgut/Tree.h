@@ -431,7 +431,7 @@ namespace global_planner_turgut
 	            	double t = node_vector[node_id].result_theta - tf::getYaw(goal.pose.orientation);
 	            	if(t > M_PI) t = t - 2*M_PI;
 	            	else if(t < -M_PI) t = t + 2*M_PI;
-	            	//if(fabs(t) < 0.05)
+	            	if(fabs(t) < 0.05)
 	            	{	                
 	            		final_node = node_id;
 	            		//std::cout << "reached to goal, interrupted\n";
@@ -504,10 +504,7 @@ namespace global_planner_turgut
 	            if(distance_to_goal < 0.8 && !approach) 
 	            {
 	            	approach = true;
-	            	for(int i = 0; i<node_vector.size(); i++)
-	            	{
-	            		node_vector[i].end = false;
-	            	}
+
 	            }
 
 	            int nearest_grid_road_waypoint=-1;
@@ -533,30 +530,25 @@ namespace global_planner_turgut
 	            child.potential = 0;
 	            //child.potential = -distance_to_goal ;
 
+	            float r = 0.27;
+	            float goal_yaw = tf::getYaw(goal.pose.orientation);
+	            float c1_x = goal.pose.position.x + cos(goal_yaw + M_PI/2.0)*r;
+	            float c1_y = goal.pose.position.y + sin(goal_yaw + M_PI/2.0)*r;
+	            float c2_x = goal.pose.position.x + cos(goal_yaw - M_PI/2.0)*r;
+	            float c2_y = goal.pose.position.y + sin(goal_yaw - M_PI/2.0)*r;
+
+	            
+
 	            if(nearest_grid_road_waypoint != -1 && second_nearest_grw != -1)
 	            {
-	            	float t1 = atan(
-	            		(grid_road[nearest_grid_road_waypoint].second - grid_road[second_nearest_grw].second)
-	            		/
-	            		(grid_road[nearest_grid_road_waypoint].first - grid_road[second_nearest_grw].first));
-
-	            	float t2 = atan(
-	            		(grid_road[nearest_grid_road_waypoint].second - child.result_y)
-	            		/
-	            		(grid_road[nearest_grid_road_waypoint].first - child.result_x));
-
-	            	float h = fabs(sin(t1 - t2)*distance_to_nearest_grid_road_waypoint);
-	            	float p1_p2_dist = sqrt(pow(grid_road[nearest_grid_road_waypoint].first - grid_road[second_nearest_grw].first, 2) + pow(grid_road[nearest_grid_road_waypoint].second - grid_road[second_nearest_grw].second, 2));
-	            	float c = cos(t1 - t2)*distance_to_nearest_grid_road_waypoint / p1_p2_dist;
-
 	            	if(distance_to_nearest_grid_road_waypoint<0.5)
-	            		child.potential += 0.1*(nearest_grid_road_waypoint*distance_to_sngrw + second_nearest_grw*distance_to_nearest_grid_road_waypoint)/(distance_to_sngrw+distance_to_nearest_grid_road_waypoint);
+	            		child.potential += 0.1*(-fabs(theta1) + nearest_grid_road_waypoint*distance_to_sngrw + second_nearest_grw*distance_to_nearest_grid_road_waypoint)/(distance_to_sngrw+distance_to_nearest_grid_road_waypoint);
 	            	else child.potential -= 1;
 	            }
 
-	            //child.potential-= fabs(theta1);
 
-	            if(approach) child.potential = - distance_to_goal -2*fabs(theta1);
+
+	            //if(approach) child.potential = - distance_to_goal -fabs(theta1);
 	            // float look_x;
 
 	            // for(look_x = 0; look_x< 0.25; look_x+=0.05)
