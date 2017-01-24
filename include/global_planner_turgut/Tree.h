@@ -564,11 +564,40 @@ namespace global_planner_turgut
 	            if(nearest_grid_road_waypoint != -1 && second_nearest_grw != -1)
 	            {
 	            	if(distance_to_nearest_grid_road_waypoint<1)
-	            		child.potential += 0.05*( float(nearest_grid_road_waypoint)*distance_to_sngrw + float(second_nearest_grw)*distance_to_nearest_grid_road_waypoint)/(distance_to_sngrw+distance_to_nearest_grid_road_waypoint);
+	            		child.potential += 0.1*( float(nearest_grid_road_waypoint)*distance_to_sngrw + float(second_nearest_grw)*distance_to_nearest_grid_road_waypoint)/(distance_to_sngrw+distance_to_nearest_grid_road_waypoint);
 	            	else child.potential -= 1;
 	            }
 
-	            child.potential -= 0.1*fabs(theta1)*float(nearest_grid_road_waypoint)/float(grid_road.size());
+	            float r = 0.274;
+	            float goal_yaw = round(tf::getYaw(goal.pose.orientation)/(M_PI/15.0))*(M_PI/15.0);
+	            float goal_cw_x = goal.pose.position.x + r*cos(goal_yaw - M_PI/2.0);
+	            float goal_cw_y = goal.pose.position.y + r*sin(goal_yaw - M_PI/2.0);
+	            float goal_ccw_x = goal.pose.position.x + r*cos(goal_yaw + M_PI/2.0);
+	            float goal_ccw_y = goal.pose.position.y + r*sin(goal_yaw + M_PI/2.0);
+
+	            float robot_cw_x = child.result_x + r*cos(child.result_theta - M_PI/2.0);
+	            float robot_cw_y = child.result_y + r*sin(child.result_theta - M_PI/2.0);
+	            float robot_ccw_x = child.result_x + r*cos(child.result_theta - M_PI/2.0);
+	            float robot_ccw_y = child.result_y + r*sin(child.result_theta - M_PI/2.0);
+
+	            float x1_cw = cos(child.result_theta)*(robot_cw_x - goal_cw_x) + sin(child.result_theta)*(robot_cw_y - goal_cw_y);
+	            float y1_cw = -sin(child.result_theta)*(robot_cw_x - goal_cw_x) + cos(child.result_theta)*(robot_cw_y - goal_cw_y);
+
+	            float x1_ccw = cos(child.result_theta)*(robot_ccw_x - goal_ccw_x) + sin(child.result_theta)*(robot_ccw_y - goal_ccw_y);
+	            float y1_ccw = -sin(child.result_theta)*(robot_ccw_x - goal_ccw_x) + cos(child.result_theta)*(robot_ccw_y - goal_ccw_y);
+
+	            float closest = sqrt(pow(x1_cw, 2) + pow(y1_cw, 2));
+	            float closest_y1 = fabs(y1_cw);
+	            float closest_x1 = fabs(x1_cw);
+	            if(sqrt(pow(x1_ccw, 2) + pow(y1_ccw, 2)) < closest)
+	            {
+	            	closest_y1 = fabs(y1_ccw);
+	            	closest_x1 = fabs(x1_ccw);
+	            }
+
+	            if(closest_y1 > 2*r) closest_y1 = 2*r;
+
+	            child.potential -= closest_y1*float(nearest_grid_road_waypoint)/float(grid_road.size());
 	           
 
 

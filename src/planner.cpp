@@ -55,9 +55,9 @@ namespace global_planner_turgut
 		
 		
 	
-		tree.init_starting_pose(goal.pose);
+		tree.init_starting_pose(start.pose);
 		
-		tree.grid_astar(goal.pose, start.pose);
+		tree.grid_astar(start.pose, goal.pose);
 
 		int best_start_to_end ;
 		
@@ -67,7 +67,7 @@ namespace global_planner_turgut
 		{
 			
 			best_start_to_end = tree.find_best_end();
-			int v = tree.expand_node(best_start_to_end, start);
+			int v = tree.expand_node(best_start_to_end, goal);
 			
 			if(v == -1 ) {
 				stat = -1;
@@ -83,7 +83,7 @@ namespace global_planner_turgut
 
 		tree.create_road_to_final(plan);
 
-		std::reverse(plan.begin(), plan.end());
+		//std::reverse(plan.begin(), plan.end());
 
 
 
