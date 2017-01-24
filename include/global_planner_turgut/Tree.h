@@ -266,6 +266,8 @@ namespace global_planner_turgut
 
 	    	int n = reached_node;
 
+	    	std::vector<std::pair<float, float> > temporary_road;
+
 	    	if(stat == 1)
 	    	{
 	    		while(1)
@@ -278,17 +280,72 @@ namespace global_planner_turgut
 	    			coord.first = x_world;
 	    			coord.second = y_world;
 
-	    			grid_road.push_back(coord);
+	    			temporary_road.push_back(coord);
 
 	    			n=nodes[n].parent_id;
 
 	    		}
 
-	    		std::reverse(grid_road.begin(), grid_road.end());
+	    		std::reverse(temporary_road.begin(), temporary_road.end());
 
 	    	}
 
+	    	//post process
+	    	int curr = 0;
+	    	while(curr < temporary_road.size())
+	    	{
+	    		int last_checked = temporary_road.size()-1;
+	    		bool seen = false;
 
+	    		while(last_checked > curr+1)
+	    		{
+	    			float dist = sqrt(pow(temporary_road[curr].first - temporary_road[last_checked].first, 2)
+	    				+ pow(temporary_road[curr].second - temporary_road[last_checked].second, 2));
+	    			int num = dist/costmap_->getResolution();
+	    			seen = true;
+	    			for(int inc = 0; inc < num; inc++)
+	    			{
+	    				float x = temporary_road[curr].first + inc*(temporary_road[last_checked].first - temporary_road[curr].first)/float(num);
+	    				float y = temporary_road[curr].second + inc*(temporary_road[last_checked].second - temporary_road[curr].second)/float(num);
+
+	    				unsigned int mx, my;
+	    				costmap_->worldToMap(x, y, mx, my);
+	    				if(costmap_->getCost(mx, my)>200)
+	    				{
+	    					seen = false;
+	    					break;
+	    				}
+	    			}
+	    			if(!seen)
+	    				last_checked--;
+	    			else
+	    				break;
+	    		}
+	    		if(seen&&last_checked>curr+1)
+	    		{
+	    			temporary_road.erase(temporary_road.begin()+curr+1, temporary_road.begin()+last_checked);
+	    			
+	    		}
+	    		curr++;
+	    	}
+
+	    	for(int i = 0; i< temporary_road.size()-1; i++)
+	    	{
+	    		float dist = sqrt(pow(temporary_road[i].first - temporary_road[i+1].first, 2)
+	    			+ pow(temporary_road[i].second - temporary_road[i+1].second, 2));
+	    		float num = dist/0.05;
+	    		float x_inc = (temporary_road[i+1].first - temporary_road[i].first)/num;
+	    		float y_inc = (temporary_road[i+1].second - temporary_road[i].second)/num;
+
+	    		for(int j = 0; j < num; j++)
+	    		{
+	    			std::pair<float, float> p;
+	    			p.first = temporary_road[i].first + x_inc*j;
+	    			p.second = temporary_road[i].second + y_inc*j;
+
+	    			grid_road.push_back(p);
+	    		}
+	    	}
 	    }
 
 	    void set_grid_road_from_path(const std::vector<geometry_msgs::PoseStamped> &path)
@@ -502,49 +559,17 @@ namespace global_planner_turgut
 	            }
 
 	            child.potential = 0;
-	            //child.potential = -distance_to_goal ;
 
-	            float r = 0.27;
-	            float goal_yaw = tf::getYaw(goal.pose.orientation);
-	            float c1_x = goal.pose.position.x + cos(goal_yaw + M_PI/2.0)*r;
-	            float c1_y = goal.pose.position.y + sin(goal_yaw + M_PI/2.0)*r;
-	            float c2_x = goal.pose.position.x + cos(goal_yaw - M_PI/2.0)*r;
-	            float c2_y = goal.pose.position.y + sin(goal_yaw - M_PI/2.0)*r;
-
-	            
 
 	            if(nearest_grid_road_waypoint != -1 && second_nearest_grw != -1)
 	            {
-	            	if(distance_to_nearest_grid_road_waypoint<0.5)
-	            		child.potential += 0.1*( nearest_grid_road_waypoint*distance_to_sngrw + second_nearest_grw*distance_to_nearest_grid_road_waypoint)/(distance_to_sngrw+distance_to_nearest_grid_road_waypoint);
+	            	if(distance_to_nearest_grid_road_waypoint<1)
+	            		child.potential += 0.05*( float(nearest_grid_road_waypoint)*distance_to_sngrw + float(second_nearest_grw)*distance_to_nearest_grid_road_waypoint)/(distance_to_sngrw+distance_to_nearest_grid_road_waypoint);
 	            	else child.potential -= 1;
 	            }
 
-	            //child.potential += 1/(1+distance_to_goal*fabs(theta1));
-	            
-	            // float look_x;
-
-	            // for(look_x = 0; look_x< 0.25; look_x+=0.05)
-	            // {
-
-	            // 	costmap_->worldToMap(child.result_x + cos(yaw)*look_x, child.result_y + sin(yaw)*look_x, xi, yi);
-	            // 	if(costmap_->getCost(xi,yi) > 100) 
-	            // 		{
-	            // 			child.potential += 2*look_x/distance_to_goal;
-	            // 			break;
-	            // 		}
-	            // }
-
-	            // for(look_x = 0; look_x> -0.25; look_x-=0.05)
-	            // {
-
-	            // 	costmap_->worldToMap(child.result_x + cos(yaw)*look_x, child.result_y + sin(yaw)*look_x, xi, yi);
-	            // 	if(costmap_->getCost(xi,yi) > 100) 
-	            // 		{
-	            // 			child.potential -= 2*look_x/distance_to_goal;
-	            // 			break;
-	            // 		}
-	            // }
+	            child.potential -= 0.1*fabs(theta1)*float(nearest_grid_road_waypoint)/float(grid_road.size());
+	           
 
 
 
@@ -582,8 +607,10 @@ namespace global_planner_turgut
 	                	if(t > M_PI) t = t - 2*M_PI;
 	                	else if(t < -M_PI) t = t + 2*M_PI;
 	                	if(fabs(t) < 0.2)
-	                	{	                
-	                		final_node = node_id;
+	                	{
+
+
+	                		final_node = child.id;
 	                    		//std::cout << "reached to goal, interrupted\n";
 	                		return 1;
 	                	}
@@ -609,69 +636,11 @@ namespace global_planner_turgut
 	    	node_vector[node_id].end = false;
 	    }
 
-	    void recalculate_node_cost(float difference, int node_id)
-	    {
-	    	node_vector[node_id].cost += difference;
-	    	if(!node_vector[node_id].children_ids.empty())
-	    	{
-	    		for(int i = 0; i<node_vector[node_id].children_ids.size(); i++)
-	    		{
-	    			recalculate_node_cost(difference, node_vector[node_id].children_ids[i]);
-	    		}
-	    	}
-	    }
-
-	    float compute_arc_and_line(float c1_x, float c1_y, float c2_x, float c2_y, float a1, float a2, float r, bool c1_cw, bool c2_cw)
-	    {
-
-
-
-	    	float distance_between_centers = sqrt(pow(c1_x - c2_x, 2) + pow(c1_y - c2_y, 2));
-	    		
-	    	while(distance_between_centers < 2*r)
-	    	{
-	    		c2_x += 0.01*cos(a2);
-	    		c2_y += 0.01*sin(a2);
-
-	    		distance_between_centers = sqrt(pow(c1_x - c2_x, 2) + pow(c1_y - c2_y, 2));
-	    	}
-
-	    	float line_length;
-	    	if((c1_cw && c2_cw) || (!c1_cw && !c2_cw)) line_length = distance_between_centers;
-	    	else
-	    	{
-	    		line_length = sqrt(pow(distance_between_centers, 2) - 4*r*r);
-	    	}
-
-	    	float line_angle;
-	    	if((c1_cw && c2_cw) || (!c1_cw && !c2_cw)) line_angle = atan((c2_y - c1_y)/(c2_x - c1_x));
-	    	else
-	    	{
-	    		line_angle = atan((c2_y - c1_y)/(c2_x - c1_x)) - asin(2*r / distance_between_centers);
-	    	}
-
-	    	float arc1, arc2;
-	    	if(c1_cw) arc1 = (a1-line_angle);
-	    	else  arc1 = (line_angle - a1);
-
-	    	if(c2_cw) arc2 = (line_angle - a2);
-	    	else  arc2 = (a2 - line_angle);
-
-	    	while(arc1 < 0) arc1 += 2*M_PI;
-	    	while(arc1 > 2*M_PI) arc1-=2*M_PI;
-
-	    	while(arc2 < 0) arc2 += 2*M_PI;
-	    	while(arc2 > 2*M_PI) arc2-=2*M_PI;
-	    	
-	    	return (arc1+arc2)*r + line_length;
-
-
-	    }
-
 	    void create_road_to_final(std::vector<geometry_msgs::PoseStamped> &path)
 	    {
 	        path.clear();
 	        int n = final_node;
+
 
 
 	        while(1)
@@ -752,14 +721,6 @@ namespace global_planner_turgut
 	       
 	    }
 
-
-	    void get_node_pose(int node_id, geometry_msgs::PoseStamped &pose)
-	    {
-	    	pose.pose.position.x = node_vector[node_id].result_x;
-	    	pose.pose.position.y = node_vector[node_id].result_y;
-	    	pose.pose.position.z = 0;
-	    	pose.pose.orientation = tf::createQuaternionMsgFromYaw(node_vector[node_id].result_theta);
-	    }
 
 	};
 }
