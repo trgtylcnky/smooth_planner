@@ -52,9 +52,6 @@ namespace global_planner_turgut
 
 		ros::NodeHandle nh;
 
-		
-		
-	
 		tree.init_starting_pose(start.pose);
 		
 		tree.grid_astar(start.pose, goal.pose);
@@ -93,7 +90,6 @@ namespace global_planner_turgut
 		gui_path.header.frame_id = "/map";
 		gui_path.header.stamp = ros::Time::now();
 
-		    // Extract the plan in world co-ordinates, we assume the path is all in the same frame
 		for (unsigned int i = 0; i < plan.size(); i++) {
 			gui_path.poses[i] = plan[i];
 		}
@@ -107,7 +103,6 @@ namespace global_planner_turgut
 		gui_path2.header.frame_id = "/map";
 		gui_path2.header.stamp = ros::Time::now();
 
-		    // Extract the plan in world co-ordinates, we assume the path is all in the same frame
 		for (unsigned int i = 0; i < tree.grid_road.size(); i++) {
 			gui_path2.poses[i].header.stamp = ros::Time::now();
 			gui_path2.poses[i].header.frame_id = "/map";
@@ -123,9 +118,6 @@ namespace global_planner_turgut
 		}
 
 		plan_pub_2.publish(gui_path2);
-
-
-
 		
 		visualization_msgs::Marker tree_marker;
 		tree_marker.header.frame_id = "/map";

@@ -40,8 +40,6 @@ namespace global_planner_turgut
 
 	    std::vector<node> node_vector;
 
-	    float xy_samethingness_threshold;
-	    float theta_samethingness_threshold;
 
 	    int final_node;
 
@@ -60,7 +58,11 @@ namespace global_planner_turgut
 	    int grid_width_y;
 	    int grid_width_theta;
 
-	    bool approach;
+	    float turn_radius;
+	    float wall_clearance;
+
+	    float goal_thresh_trans;
+	    float goal_thresh_rot;
 
 	    std::vector<std::vector<std::vector<int> > > visited_map;
 
@@ -76,13 +78,11 @@ namespace global_planner_turgut
 	    Tree()
 	    {
 
-
-
 	        final_node = 0;
 
 	        node starting_node;
 
-	        
+	        wall_clearance = 0.05;
 
 	        starting_node.parent_id = -1;
 	        starting_node.cost = 0;
@@ -96,8 +96,9 @@ namespace global_planner_turgut
 	        
 	        node_vector.push_back(starting_node);
 
-	        xy_samethingness_threshold = 0.05;
-	        theta_samethingness_threshold = 0.05;
+
+	        goal_thresh_trans = 0.05;
+	        goal_thresh_rot = 0.2;
 
 	        path_point = 0;
 
@@ -109,6 +110,22 @@ namespace global_planner_turgut
 	        starting_node.id = 0;
 
 	        starting_node.end = false;
+	    }
+
+	    void set_grid_resolution(float grid_res_xy, float grid_res_theta)
+	    {
+	    	grid_resolution_xy = grid_res_xy;
+	    	grid_resolution_theta = grid_res_theta;
+	    }
+
+	    void set_turn_radius(float r)
+	    {
+	    	turn_radius = r;
+	    }
+
+	    void set_wall_clearance(float c)
+	    {
+	    	wall_clearance = c;
 	    }
 
 	    void initialize(costmap_2d::Costmap2D* costmap)
@@ -149,10 +166,15 @@ namespace global_planner_turgut
 	    	}
 
 	    }
+
+
+	    //This function does a prior exploration
+	    //Find a path to guide later path finding
 	    void grid_astar(const geometry_msgs::Pose &start, const geometry_msgs::Pose &goal)
 	    {
 	    	grid_road.clear();	    	
 
+	    	//Using a navigation grid for simplicity
 	    	for(int i = 0; i<grid_width_x; i++)
 	    	{
 	    		for(int j = 0; j<grid_width_y; j++) 
@@ -162,12 +184,14 @@ namespace global_planner_turgut
 
 	    	}
 
-
-
+	    	//using grid coordinated instead of world coordinates
 	    	int goal_x =(goal.position.x - map_origin_x)/grid_resolution_xy;
 	    	int goal_y =(goal.position.y - map_origin_y)/grid_resolution_xy;
 
+
 	    	std::vector<node> nodes;
+
+	    	//node for initial position
 	    	node starting_node;
 	    	starting_node.result_x = (start.position.x - map_origin_x)/grid_resolution_xy;
 	    	starting_node.result_y = (start.position.y - map_origin_y)/grid_resolution_xy;
@@ -179,6 +203,7 @@ namespace global_planner_turgut
 	    	nodes.push_back(starting_node);
 	    	nav_grid[int(starting_node.result_x)][int(starting_node.result_y)] = 0;
 
+	    	
 	    	const char x_step[8]={-1, 0, 1, -1, 1, -1, 0, 1};
 	    	const char y_step[8]={1, 1, 1, 0, 0, -1, -1, -1};
 
@@ -232,10 +257,8 @@ namespace global_planner_turgut
 
 	    			float x_world = x*grid_resolution_xy + map_origin_x;
 	    			float y_world = y*grid_resolution_xy + map_origin_y;
-	    			unsigned int xi, yi;
-	    			costmap_->worldToMap(x_world, y_world, xi, yi);
 
-	    			if(costmap_->getCost(xi, yi) > 100) continue;
+	    			if(find_closest_wall_distance(x_world, y_world, 0.1) < 0.05) continue;
 
 	    			if(x>=0 && x<grid_width_x && y>=0 && y<grid_width_y)
 	    			{
@@ -364,7 +387,7 @@ namespace global_planner_turgut
 
 	    void init_starting_pose(geometry_msgs::Pose p)
 	    {
-	    	approach = false;
+
 
 	    	node_vector.clear();
 	    	final_node = 0;
@@ -384,9 +407,6 @@ namespace global_planner_turgut
 
 	    	
 	    	node_vector.push_back(starting_node);
-
-	    	xy_samethingness_threshold = 0.05;
-	    	theta_samethingness_threshold = 0.025;
 
 	        node_vector[0].result_theta = round(tf::getYaw(p.orientation)/(M_PI/15.0))*(M_PI/15.0);
 	        node_vector[0].result_x = p.position.x;
@@ -441,6 +461,35 @@ namespace global_planner_turgut
 
 	    }
 
+	    float find_closest_wall_distance(float x, float y, float max_search_radius)
+	    {
+	    	unsigned int mx, my;
+
+	    	unsigned int upright_mx, upright_my, downleft_mx, downleft_my;
+	    	costmap_->worldToMap(x-max_search_radius, y-max_search_radius, downleft_mx, downleft_my);
+	    	costmap_->worldToMap(x+max_search_radius, y+max_search_radius, upright_mx, upright_my);
+
+
+
+	    	float closest = max_search_radius;
+	    	for(mx = downleft_mx; mx <= upright_mx; mx++)
+	    	{
+	    		for(my = downleft_my; my < upright_my; my++)
+	    		{
+	    			if(costmap_->getCost(mx, my) >= 200)
+	    			{
+	    				double wx, wy;
+	    				costmap_->mapToWorld(mx, my, wx, wy);
+	    				float d = sqrt(pow(wx - x, 2) + pow(wy - y, 2));
+	    				if(d < closest) closest = d;
+	    			}
+	    		}
+	    	}
+
+	    	return closest;
+
+	    }
+
 
 	    int expand_node(int node_id, const geometry_msgs::PoseStamped &goal)
 	    {
@@ -491,31 +540,8 @@ namespace global_planner_turgut
 	            child.result_x = node_vector[node_id].result_x + cos(child.result_theta)*prim_dist[i];
 	            child.result_y = node_vector[node_id].result_y + sin(child.result_theta)*prim_dist[i];
 
-
-	            costmap_->worldToMap(child.result_x, child.result_y, xi, yi);
-	            if(costmap_->getCost(xi,yi) > 100
-	            	|| costmap_->getCost(xi+2,yi+2) > 100
-	            	|| costmap_->getCost(xi-2,yi-2) > 100
-	            	|| costmap_->getCost(xi+2,yi-2) > 100
-	            	|| costmap_->getCost(xi-2,yi+2) > 100
-	            	){
-	            	// int parent=node_vector[node_id].parent_id;
-	            	// for(char p=0; p<5; p++)
-	            	// {
-	            	//  	if(parent==-1) break;
-	            	//  	else
-	            	//  	{
-	            	//  		node_vector[parent].cost-=0.5*(pow(0.5,  p));
-	            	//  		parent=node_vector[parent].parent_id;
-	            	//  	}
-
-	            	//  }
-	            	
-	            	continue;
-	            }
-
-
-
+	            float closest_wall = find_closest_wall_distance(child.result_x, child.result_y, 2*wall_clearance);
+	            if(closest_wall < wall_clearance) continue;
 
 	            child.cost = node_vector[node_id].cost - prim_cost[i];
 	            child.id=node_vector.size();
@@ -525,23 +551,6 @@ namespace global_planner_turgut
 	            float theta1 = child.result_theta - tf::getYaw(goal.pose.orientation);
 	        	if(theta1 > M_PI)  theta1-=2*M_PI;
 	        	else if(theta1 < -M_PI) theta1+=2*M_PI;
-
-	        	float dx = child.result_x - goal.pose.position.x;
-	        	float dy = child.result_y - goal.pose.position.y;
-	        	float y1 = -sin(child.result_theta)*dx + cos(child.result_theta)*dy;
-
-	            float distance_to_goal = sqrt(
-	            	pow(goal.pose.position.x - child.result_x, 2)
-	            	+ pow(goal.pose.position.y - child.result_y, 2) 
-	            	
-	            	);
-
-	            if(distance_to_goal < 0.5 && !approach) 
-	            {
-	            	approach = true;
-	            	//for(int asd = 0; asd < node_vector.size(); asd++) node_vector[asd].end = false;
-
-	            }
 
 	            int nearest_grid_road_waypoint=-1;
 	            int second_nearest_grw = -1;
@@ -570,7 +579,7 @@ namespace global_planner_turgut
 	            	else child.potential -= 1;
 	            }
 
-	            float r = 0.4;
+	            float r = turn_radius;
 	            float goal_yaw = tf::getYaw(goal.pose.orientation);
 	            float goal_cw_x = goal.pose.position.x + r*cos(goal_yaw - M_PI/2.0);
 	            float goal_cw_y = goal.pose.position.y + r*sin(goal_yaw - M_PI/2.0);
@@ -602,8 +611,6 @@ namespace global_planner_turgut
 	            child.potential -= closest_y1*float(nearest_grid_road_waypoint)/float(grid_road.size());
 	           
 
-
-
 	            bool samethingness = false;
 	            int vis = get_visited_map(child.result_x, child.result_y, child.result_theta);
 	            if(vis>-1)
@@ -619,6 +626,12 @@ namespace global_planner_turgut
 	            	else samethingness = true;
 	            }
 
+	            float distance_to_goal = sqrt(
+	            	pow(goal.pose.position.x - child.result_x, 2)
+	            	+ pow(goal.pose.position.y - child.result_y, 2) 
+	            	
+	            	);
+
 
 	            if(!samethingness)
 	            {   
@@ -630,14 +643,12 @@ namespace global_planner_turgut
 
 	                set_visited_map(child.result_x, child.result_y, child.result_theta, child.id);
 	                
-	                if(fabs(child.result_x - goal.pose.position.x) < 0.05
-	                	&&fabs(child.result_y - goal.pose.position.y) < 0.05
-	                	) 
+	                if(distance_to_goal < goal_thresh_trans) 
 	                {
 	                	double t = child.result_theta - tf::getYaw(goal.pose.orientation);
 	                	if(t > M_PI) t = t - 2*M_PI;
 	                	else if(t < -M_PI) t = t + 2*M_PI;
-	                	if(fabs(t) < 0.2)
+	                	if(fabs(t) < goal_thresh_rot)
 	                	{
 
 
