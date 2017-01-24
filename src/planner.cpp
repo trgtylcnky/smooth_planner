@@ -55,27 +55,52 @@ namespace global_planner_turgut
 		
 		
 	
-		tree.init_starting_pose(start.pose);
+		tree.init_starting_pose(goal.pose);
 		
+		tree.grid_astar(goal.pose, start.pose);
 
+		int best_start_to_end ;
 		
-		tree.costmap_ = costmap_;
-		
-		tree.grid_astar(start.pose, goal.pose);
+		int lim = 0;
+		char stat = 0;
+		while(lim++<10000 )
+		{
+			
+			best_start_to_end = tree.find_best_end();
+			int v = tree.expand_node(best_start_to_end, start);
+			
+			if(v == -1 ) {
+				stat = -1;
+				break;
+			}
+			else if(v == 0) continue;
+			else if(v == 1)
+			{
+				stat = 1;
+				break;
+			}
+		}
 
-		
-		visualization_msgs::Marker tree_marker;
-		tree_marker.header.frame_id = "/map";
-		tree_marker.type = visualization_msgs::Marker::LINE_LIST;
-		tree_marker.scale.x = 0.002;
-		tree_marker.color.b = 1.0f;
-		tree_marker.color.r = 1.0f;
-		tree_marker.color.a = 0.7f;
+		tree.create_road_to_final(plan);
 
-		/*
+		std::reverse(plan.begin(), plan.end());
 
-		marker_pub.publish(tree_marker);
-*/
+
+
+		nav_msgs::Path gui_path;
+		gui_path.poses.resize(plan.size());
+
+		gui_path.header.frame_id = "/map";
+		gui_path.header.stamp = ros::Time::now();
+
+		    // Extract the plan in world co-ordinates, we assume the path is all in the same frame
+		for (unsigned int i = 0; i < plan.size(); i++) {
+			gui_path.poses[i] = plan[i];
+		}
+
+		plan_pub_.publish(gui_path);
+
+
 		nav_msgs::Path gui_path2;
 		gui_path2.poses.resize(tree.grid_road.size());
 
@@ -100,53 +125,19 @@ namespace global_planner_turgut
 		plan_pub_2.publish(gui_path2);
 
 
-		int best_start_to_end ;
-		
-		int lim = 0;
-		char stat = 0;
-		while(lim++<10000 )
-		{
-			
-			best_start_to_end = tree.find_best_end(goal);
-
-			
-
-			int v = tree.expand_node(best_start_to_end, goal);
-			
-
-			if(v == -1 ) {
-				stat = -1;
-				break;
-			}
-			else if(v == 0) continue;
-			else if(v == 1)
-			{
-				stat = 1;
-				break;
-			}
-		}
-
 
 		
-		tree.create_road_to_final(plan);
+		visualization_msgs::Marker tree_marker;
+		tree_marker.header.frame_id = "/map";
+		tree_marker.type = visualization_msgs::Marker::LINE_LIST;
+		tree_marker.scale.x = 0.002;
+		tree_marker.color.b = 1.0f;
+		tree_marker.color.r = 1.0f;
+		tree_marker.color.a = 0.7f;
 
 		tree.create_line_list(tree_marker);
 		
 		marker_pub.publish(tree_marker);
-
-
-		nav_msgs::Path gui_path;
-		gui_path.poses.resize(plan.size());
-
-		gui_path.header.frame_id = "/map";
-		gui_path.header.stamp = ros::Time::now();
-
-		    // Extract the plan in world co-ordinates, we assume the path is all in the same frame
-		for (unsigned int i = 0; i < plan.size(); i++) {
-			gui_path.poses[i] = plan[i];
-		}
-
-		plan_pub_.publish(gui_path);
 
 
 /*

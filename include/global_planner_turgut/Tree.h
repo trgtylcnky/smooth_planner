@@ -66,8 +66,6 @@ namespace global_planner_turgut
 
 	    std::vector<std::vector<int> > nav_grid;
 
-	    
-
 
 	public:
 
@@ -293,6 +291,18 @@ namespace global_planner_turgut
 
 	    }
 
+	    void set_grid_road_from_path(const std::vector<geometry_msgs::PoseStamped> &path)
+	    {
+	    	grid_road.clear();
+
+	    	for(int i = 0; i< path.size(); i++)
+	    	{
+	    		std::pair<float, float> p;
+	    		p.first = path[i].pose.position.x;
+	    		p.second = path[i].pose.position.y;
+	    	}
+	    }
+
 	    void init_starting_pose(geometry_msgs::Pose p)
 	    {
 	    	approach = false;
@@ -319,8 +329,6 @@ namespace global_planner_turgut
 	    	xy_samethingness_threshold = 0.05;
 	    	theta_samethingness_threshold = 0.025;
 
-
-
 	        node_vector[0].result_theta = round(tf::getYaw(p.orientation)/(M_PI/15.0))*(M_PI/15.0);
 	        node_vector[0].result_x = p.position.x;
 	        node_vector[0].result_y = p.position.y;
@@ -336,40 +344,11 @@ namespace global_planner_turgut
 
 	        set_visited_map(node_vector[0].result_x, node_vector[0].result_y, node_vector[0].result_theta, 0);
 
-
-/*	        //add one front and one back
-	        node second_step;
-
-	        second_step.parent_id = 0;
-	        second_step.id=1;
-	        second_step.end = true;
-
-	        second_step.result_theta = node_vector[0].result_theta;
-	        second_step.result_x = node_vector[0].result_x + cos(second_step.result_theta)*prim_dist[0];
-	        second_step.result_y = node_vector[0].result_y + sin(second_step.result_theta)*prim_dist[0];
-	        second_step.cost = node_vector[0].cost + prim_cost[0];
-
-	        node_vector[0].children_ids.push_back(1);
-	        node_vector.push_back(second_step);
-
-	        node second_step2;
-
-	        second_step2.parent_id = 0;
-	        second_step2.id=2;
-	        second_step2.end = true;
-
-	        second_step2.result_theta = node_vector[0].result_theta;
-	        second_step2.result_x = node_vector[0].result_x + cos(second_step2.result_theta)*prim_dist[3];
-	        second_step2.result_y = node_vector[0].result_y + sin(second_step2.result_theta)*prim_dist[3];
-	        second_step2.cost = node_vector[0].cost + prim_cost[3];
-
-	        node_vector[0].children_ids.push_back(2);
-	        node_vector.push_back(second_step2);*/
-
 	        node_vector[0].end = false;
 
 
 	    }
+
 
 	    void set_visited_map(float x, float y, float theta, int node_id)
 	    {
@@ -426,7 +405,7 @@ namespace global_planner_turgut
 	            	double t = node_vector[node_id].result_theta - tf::getYaw(goal.pose.orientation);
 	            	if(t > M_PI) t = t - 2*M_PI;
 	            	else if(t < -M_PI) t = t + 2*M_PI;
-	            	if(fabs(t) < 0.1)
+	            	if(fabs(t) < 0.2)
 	            	{	                
 	            		final_node = node_id;
 	            		//std::cout << "reached to goal, interrupted\n";
@@ -541,7 +520,7 @@ namespace global_planner_turgut
 	            	else child.potential -= 1;
 	            }
 
-	            child.potential += 1/(1+distance_to_goal*fabs(theta1));
+	            //child.potential += 1/(1+distance_to_goal*fabs(theta1));
 	            
 	            // float look_x;
 
@@ -588,13 +567,29 @@ namespace global_planner_turgut
 	            if(!samethingness)
 	            {   
 
+
 	                node_vector.push_back(child);
 	                node_vector[node_id].children_ids.push_back(child.id);
 	                //std::cout <<node_id<<">"<< child.id << " " << child.result_x << " x " << child.result_y <<"\n";
 
 	                set_visited_map(child.result_x, child.result_y, child.result_theta, child.id);
 	                
-	                
+	                if(fabs(child.result_x - goal.pose.position.x) < 0.05
+	                	&&fabs(child.result_y - goal.pose.position.y) < 0.05
+	                	) 
+	                {
+	                	double t = child.result_theta - tf::getYaw(goal.pose.orientation);
+	                	if(t > M_PI) t = t - 2*M_PI;
+	                	else if(t < -M_PI) t = t + 2*M_PI;
+	                	if(fabs(t) < 0.2)
+	                	{	                
+	                		final_node = node_id;
+	                    		//std::cout << "reached to goal, interrupted\n";
+	                		return 1;
+	                	}
+	                }
+
+
 	                //std::cout << child.id << " " << child.result_x << " x " << child.result_y <<"\n";
 	            }
 	        }
@@ -681,58 +676,32 @@ namespace global_planner_turgut
 
 	        while(1)
 	        {
-	        	if(n == 0) break;
+	        	if(n == -1) break;
 	        	float node_x = node_vector[n].result_x;
 	        	float node_y = node_vector[n].result_y;
-	        	float parent_x = node_vector[node_vector[n].parent_id].result_x;
-	        	float parent_y = node_vector[node_vector[n].parent_id].result_y;
 
-	        	float x1 = node_x - 0.25*(node_x-parent_x);
-	        	float y1 = node_y - 0.25*(node_y-parent_y);
-
-	        	float x2 = node_x - 0.75*(node_x - parent_x);
-	        	float y2 = node_y - 0.75*(node_y - parent_y);
 
 	            geometry_msgs::PoseStamped p1;
 	            p1.header.stamp = ros::Time::now();
 	            p1.header.frame_id = "/map";
-	            p1.pose.position.x = x1;
-	            p1.pose.position.y = y1;
+	            p1.pose.position.x = node_x;
+	            p1.pose.position.y = node_y;
 	            p1.pose.position.z = 0;
 	            p1.pose.orientation.x = 0;
 	            p1.pose.orientation.y = 0;
 	            p1.pose.orientation.z = 0;
 	            p1.pose.orientation.w = 1;
 
-	            geometry_msgs::PoseStamped p2;
-	            p2.header.stamp = ros::Time::now();
-	            p2.header.frame_id = "/map";
-	            p2.pose.position.x = x2;
-	            p2.pose.position.y = y2;
-	            p2.pose.position.z = 0;
-	            p2.pose.orientation.x = 0;
-	            p2.pose.orientation.y = 0;
-	            p2.pose.orientation.z = 0;
-	            p2.pose.orientation.w = 1;
 
 	            path.push_back(p1);
-	            //path.push_back(p2);
 
-	            if(n == 0 ) break;
-	            else n = node_vector[n].parent_id;
+	            n = node_vector[n].parent_id;
 	        }
 
 	        std::reverse(path.begin(), path.end());
 	    }
-	    int find_best_end(const geometry_msgs::PoseStamped &goal)
-	    {
-	    	std::vector<geometry_msgs::PoseStamped> path;
 
-	    	path.push_back( goal);
-	    	return find_best_end(path);
-
-	    }
-	    int find_best_end(const std::vector<geometry_msgs::PoseStamped>& path)
+	    int find_best_end()
 	    {
 
 	        float best_cost = -1000000;
@@ -754,20 +723,9 @@ namespace global_planner_turgut
 
 	        return best_id;
 
-
-	        
 	    }
 
-	    bool expand_best_end(const geometry_msgs::PoseStamped &goal)
-	    {
-	        return expand_node(find_best_end(goal), goal);
 
-	    }
-
-	    bool expand_best_end(const geometry_msgs::PoseStamped &goal, const std::vector<geometry_msgs::PoseStamped>& path)
-	    {
-	    	return expand_node(find_best_end(path), goal);
-	    }
 
 	    void create_line_list( visualization_msgs::Marker &output)
 	    {
@@ -794,33 +752,6 @@ namespace global_planner_turgut
 	       
 	    }
 
-	    void create_line_list_to_final( visualization_msgs::Marker &output)
-	    {
-	    	output.points.clear();
-	        int n = final_node;
-
-	        while(n != 0)
-	        {
-	            int i = node_vector[n].parent_id;
-
-	            geometry_msgs::Point child_p;
-	            child_p.x = node_vector[n].result_x;
-	            child_p.y = node_vector[n].result_y;
-	            child_p.z = 0;
-
-	            geometry_msgs::Point parent_p;
-	            parent_p.x = node_vector[i].result_x;
-	            parent_p.y = node_vector[i].result_y;
-	            parent_p.z = 0;
-
-	            //std::cout << "Child: " << n << " Parent: " << i << "\n";
-
-	            output.points.push_back(parent_p);
-	            output.points.push_back(child_p);
-
-	            n = i;
-	        }
-	    }
 
 	    void get_node_pose(int node_id, geometry_msgs::PoseStamped &pose)
 	    {
