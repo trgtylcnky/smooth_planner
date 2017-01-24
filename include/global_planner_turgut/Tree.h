@@ -290,6 +290,8 @@ namespace global_planner_turgut
 
 	    	}
 
+	    	if(temporary_road.size() < 1) return;
+
 	    	//post process
 	    	int curr = 0;
 	    	while(curr < temporary_road.size())
@@ -568,8 +570,8 @@ namespace global_planner_turgut
 	            	else child.potential -= 1;
 	            }
 
-	            float r = 0.274;
-	            float goal_yaw = round(tf::getYaw(goal.pose.orientation)/(M_PI/15.0))*(M_PI/15.0);
+	            float r = 0.4;
+	            float goal_yaw = tf::getYaw(goal.pose.orientation);
 	            float goal_cw_x = goal.pose.position.x + r*cos(goal_yaw - M_PI/2.0);
 	            float goal_cw_y = goal.pose.position.y + r*sin(goal_yaw - M_PI/2.0);
 	            float goal_ccw_x = goal.pose.position.x + r*cos(goal_yaw + M_PI/2.0);
@@ -577,8 +579,8 @@ namespace global_planner_turgut
 
 	            float robot_cw_x = child.result_x + r*cos(child.result_theta - M_PI/2.0);
 	            float robot_cw_y = child.result_y + r*sin(child.result_theta - M_PI/2.0);
-	            float robot_ccw_x = child.result_x + r*cos(child.result_theta - M_PI/2.0);
-	            float robot_ccw_y = child.result_y + r*sin(child.result_theta - M_PI/2.0);
+	            float robot_ccw_x = child.result_x + r*cos(child.result_theta + M_PI/2.0);
+	            float robot_ccw_y = child.result_y + r*sin(child.result_theta + M_PI/2.0);
 
 	            float x1_cw = cos(child.result_theta)*(robot_cw_x - goal_cw_x) + sin(child.result_theta)*(robot_cw_y - goal_cw_y);
 	            float y1_cw = -sin(child.result_theta)*(robot_cw_x - goal_cw_x) + cos(child.result_theta)*(robot_cw_y - goal_cw_y);
