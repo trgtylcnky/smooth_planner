@@ -119,6 +119,9 @@ include_directories(
 ## Declare a C++ library
 add_library(global_planner_turgut_lib
   src/planner.cpp
+  src/Tree.cpp
+  src/expand_node.cpp
+  src/grid_astar.cpp
 
 )
 

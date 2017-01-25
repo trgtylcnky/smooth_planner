@@ -9,12 +9,6 @@ using namespace std;
 namespace global_planner_turgut
 {
 
-
-	
-
-
-
-
 	GlobalPlannerTurgut::GlobalPlannerTurgut()
 	{
 
@@ -50,7 +44,9 @@ namespace global_planner_turgut
 		std::vector<geometry_msgs::PoseStamped>& plan )
 	{
 
-		ros::NodeHandle nh;
+
+		ros::Time begin = ros::Time::now();
+
 
 		tree.init_starting_pose(start.pose);
 		
@@ -60,7 +56,7 @@ namespace global_planner_turgut
 		
 		int lim = 0;
 		char stat = 0;
-		while(lim++<10000 )
+		while(lim++<50000 )
 		{
 			
 			best_start_to_end = tree.find_best_end();
@@ -75,6 +71,10 @@ namespace global_planner_turgut
 			{
 				stat = 1;
 				break;
+			}
+			else if(v == 2)
+			{
+				stat = 2;
 			}
 		}
 
@@ -154,9 +154,13 @@ namespace global_planner_turgut
 
 		*/
 		
+		ros::Time end = ros::Time::now();
+		ros::Duration elapsed = end - begin;
+		std::cout<< "Elapsed time: " << elapsed.toSec() << "\n";
 
 
 		if(stat == -1 || stat == 0) return false;
+		if(stat == 2) return true;
 		else return true;
 		
 
