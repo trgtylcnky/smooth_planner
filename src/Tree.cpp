@@ -16,6 +16,8 @@ namespace global_planner_turgut
 		angle_gain = 0.3;
 		guide_gain = 0.1;
 
+		zig_zag_cost = 0.1;
+
 		starting_node.parent_id = -1;
 		starting_node.cost = 0;
 		starting_node.result_theta = 0;
@@ -59,6 +61,19 @@ namespace global_planner_turgut
 	void Tree::set_wall_clearance(float c)
 	{
 		wall_clearance = c;
+	}
+
+	void Tree::set_goal_threshold(float trans, float rot)
+	{
+		goal_thresh_trans = trans;
+		goal_thresh_rot = rot;
+	}
+
+	void Tree::set_gains(float p, float a, float g)
+	{
+		pursue_gain = p;
+		angle_gain = a;
+		guide_gain = g;
 	}
 
 	void Tree::initialize(costmap_2d::Costmap2D* costmap)

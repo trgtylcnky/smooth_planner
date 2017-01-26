@@ -7,7 +7,10 @@ project(global_planner_turgut)
 find_package(catkin REQUIRED COMPONENTS
   nav_core
   roscpp
+  costmap_2d
+  dynamic_reconfigure
 )
+
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -89,6 +92,10 @@ find_package(catkin REQUIRED COMPONENTS
 #   cfg/DynReconf2.cfg
 # )
 
+generate_dynamic_reconfigure_options(
+	cfg/GPlannerTurgut.cfg
+)
+
 ###################################
 ## catkin specific configuration ##
 ###################################
@@ -128,7 +135,9 @@ add_library(global_planner_turgut_lib
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
 ## either from message generation or dynamic reconfigure
-# add_dependencies(global_planner_turgut ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+# add_dependencies(global_planner_turgut_lib ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
+add_dependencies(global_planner_turgut_lib ${PROJECT_NAME}_gencfg)
 
 ## Declare a C++ executable
 # add_executable(global_planner_turgut_node src/global_planner_turgut_node.cpp)

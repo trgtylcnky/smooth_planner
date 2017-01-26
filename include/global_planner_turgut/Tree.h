@@ -76,6 +76,8 @@ namespace global_planner_turgut
 	    float angle_gain;
 	    float guide_gain;
 
+	    float zig_zag_cost;
+
 	    float best_found_angle;
 
 	    std::vector<std::vector<std::vector<int> > > visited_map;
@@ -94,6 +96,9 @@ namespace global_planner_turgut
 	    void set_grid_resolution(float, float );
 	    void set_turn_radius(float);
 	    void set_wall_clearance(float);
+	    void set_goal_threshold(float, float);
+	    void set_gains(float, float, float);
+	    
 	    void initialize(costmap_2d::Costmap2D*);
 	    void grid_astar(const geometry_msgs::Pose &, const geometry_msgs::Pose &);
 	    void set_grid_road_from_path(const std::vector<geometry_msgs::PoseStamped> &);

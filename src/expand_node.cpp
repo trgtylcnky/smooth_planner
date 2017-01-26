@@ -52,15 +52,15 @@ namespace global_planner_turgut
 	        int second_nearest_grw = -1;
 	        float distance_to_nearest_grid_road_waypoint= 9999999;
 	        float distance_to_sngrw = 9999999;
-	        for(int i = 0; i<grid_road.size(); i++)
+	        for(int p = 0; p<grid_road.size(); p++)
 	        {
-	        	float dis = sqrt(pow(grid_road[i].first - child.result_x, 2) + pow(grid_road[i].second - child.result_y, 2));
+	        	float dis = sqrt(pow(grid_road[p].first - child.result_x, 2) + pow(grid_road[p].second - child.result_y, 2));
 
 	        	if(dis < distance_to_nearest_grid_road_waypoint)
 	        	{
 	        		second_nearest_grw = nearest_grid_road_waypoint;
 	        		distance_to_sngrw = distance_to_nearest_grid_road_waypoint;
-	        		nearest_grid_road_waypoint = i;
+	        		nearest_grid_road_waypoint = p;
 	        		distance_to_nearest_grid_road_waypoint = dis;
 	        	}
 	        }
@@ -115,6 +115,12 @@ namespace global_planner_turgut
 
 	        }
 	        else child.potential = -distance_to_goal;
+
+	        //Extra cost of zig-zag
+	        float x = node_vector[node_vector[node_id].parent_id].result_x;
+	        float y = node_vector[node_vector[node_id].parent_id].result_y;
+
+	        if(sqrt(pow(x-child.result_x, 2) + pow(y-child.result_y, 2)) < prim_dist[i]) child.cost -= zig_zag_cost;
 
 	        
 

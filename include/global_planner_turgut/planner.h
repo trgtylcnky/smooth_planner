@@ -7,6 +7,8 @@
 #include <base_local_planner/world_model.h>
 #include <base_local_planner/costmap_model.h>
 #include <nav_msgs/Path.h>
+#include "dynamic_reconfigure/server.h"
+#include "global_planner_turgut/GPlannerTurgutConfig.h"
 #include "Tree.h"
 
 using std::string;
@@ -25,10 +27,18 @@ class GlobalPlannerTurgut : public nav_core::BaseGlobalPlanner {
 	ros::Publisher plan_pub_2;
 	ros::Publisher marker_pub2;
 
+	int max_iterations;
+
 	Tree tree;
+
+	dynamic_reconfigure::Server<global_planner_turgut::GPlannerTurgutConfig> *reconfigure_server;
+	boost::recursive_mutex configuration_mutex_;
+
 public:
 
  GlobalPlannerTurgut();
+ ~GlobalPlannerTurgut();
+
  GlobalPlannerTurgut(std::string name, costmap_2d::Costmap2DROS* costmap_ros);
 
  /** overridden classes from interface nav_core::BaseGlobalPlanner **/
@@ -37,6 +47,9 @@ public:
                const geometry_msgs::PoseStamped& goal,
                std::vector<geometry_msgs::PoseStamped>& plan
               );
+ 
+
+ void dynamic_reconfigure_callback(global_planner_turgut::GPlannerTurgutConfig &, uint32_t);
  };
 };
 #endif

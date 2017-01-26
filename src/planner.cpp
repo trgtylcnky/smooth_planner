@@ -18,6 +18,16 @@ namespace global_planner_turgut
 	{
 		
 		initialize(name, costmap_ros);
+
+		max_iterations = 20000;
+
+
+
+	}
+
+	GlobalPlannerTurgut::~GlobalPlannerTurgut()
+	{
+		delete reconfigure_server;
 	}
 
 	void GlobalPlannerTurgut::initialize(std::string name, costmap_2d::Costmap2DROS* costmap_ros)
@@ -34,6 +44,27 @@ namespace global_planner_turgut
 		plan_pub_2 = nh.advertise<nav_msgs::Path>("plan2", 10);
 
 		tree.initialize(costmap_);
+
+		max_iterations = 20000;
+		ros::NodeHandle node_private("~/" + name);
+		dynamic_reconfigure::Server<global_planner_turgut::GPlannerTurgutConfig>::CallbackType cb;
+		reconfigure_server = new dynamic_reconfigure::Server<global_planner_turgut::GPlannerTurgutConfig>(node_private);
+		cb = boost::bind(&GlobalPlannerTurgut::dynamic_reconfigure_callback, this, _1, _2);
+		reconfigure_server->setCallback(cb);
+
+
+	}
+
+	void GlobalPlannerTurgut::dynamic_reconfigure_callback(global_planner_turgut::GPlannerTurgutConfig &config, uint32_t level)
+	{
+		boost::recursive_mutex::scoped_lock cfl(configuration_mutex_);
+
+		max_iterations = config.max_iterations;
+
+		tree.set_wall_clearance(config.wall_clearance);
+		tree.set_goal_threshold(config.goal_thresh_trans, config.goal_thresh_rot);
+		tree.set_gains(config.pursue_gain, config.angle_gain, config.guide_gain);
+		tree.set_grid_resolution(config.grid_resolution_xy, config.grid_resolution_theta);
 
 
 	}
@@ -56,7 +87,7 @@ namespace global_planner_turgut
 		
 		int lim = 0;
 		char stat = 0;
-		while(lim++<50000 )
+		while(lim++<max_iterations )
 		{
 			
 			best_start_to_end = tree.find_best_end();
