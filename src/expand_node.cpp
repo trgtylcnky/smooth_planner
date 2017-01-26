@@ -69,7 +69,7 @@ namespace global_planner_turgut
 
 
 	        float r = turn_radius;
-/*	        float goal_yaw = tf::getYaw(goal.pose.orientation);
+	        float goal_yaw = tf::getYaw(goal.pose.orientation);
 	        float goal_cw_x = goal.pose.position.x + r*cos(goal_yaw - M_PI/2.0);
 	        float goal_cw_y = goal.pose.position.y + r*sin(goal_yaw - M_PI/2.0);
 	        float goal_ccw_x = goal.pose.position.x + r*cos(goal_yaw + M_PI/2.0);
@@ -95,7 +95,9 @@ namespace global_planner_turgut
 	        	closest_x1 = fabs(x1_ccw);
 	        }
 
-	        if(closest_y1 > 2*r) closest_y1 = 2*r;*/
+	        if(closest_y1 > 2*r) closest_y1 = 2*r;
+
+	        if(closest_y1/closest_x1 > 1.1) child.potential-= -1;
 
 	        float distance_to_goal = sqrt(
 	        	pow(goal.pose.position.x - child.result_x, 2)
@@ -116,7 +118,7 @@ namespace global_planner_turgut
 
 	        	child.potential -= guide_gain*distance_to_nearest_grid_road_waypoint;
 
-	        	child.potential -= angle_gain*fabs(theta1)*(float(nearest_grid_road_waypoint + 1)/float(grid_road.size() + 1));
+	        	child.potential -= angle_gain*fabs(theta1)*(float(nearest_grid_road_waypoint + 1)/float(grid_road.size() ));
 
 	        }
 	        else child.potential = -distance_to_goal;
