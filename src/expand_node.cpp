@@ -69,7 +69,7 @@ namespace global_planner_turgut
 
 
 	        float r = turn_radius;
-	        float goal_yaw = tf::getYaw(goal.pose.orientation);
+/*	        float goal_yaw = tf::getYaw(goal.pose.orientation);
 	        float goal_cw_x = goal.pose.position.x + r*cos(goal_yaw - M_PI/2.0);
 	        float goal_cw_y = goal.pose.position.y + r*sin(goal_yaw - M_PI/2.0);
 	        float goal_ccw_x = goal.pose.position.x + r*cos(goal_yaw + M_PI/2.0);
@@ -95,13 +95,18 @@ namespace global_planner_turgut
 	        	closest_x1 = fabs(x1_ccw);
 	        }
 
-	        if(closest_y1 > 2*r) closest_y1 = 2*r;
+	        if(closest_y1 > 2*r) closest_y1 = 2*r;*/
 
 	        float distance_to_goal = sqrt(
 	        	pow(goal.pose.position.x - child.result_x, 2)
 	        	+ pow(goal.pose.position.y - child.result_y, 2) 
 	        	
 	        	);
+
+	        if(distance_to_goal < goal_thresh_trans)
+	        {
+	        	if(fabs(theta1) > M_PI/2) continue;
+	        }
 
 	        if(nearest_grid_road_waypoint != -1 && second_nearest_grw != -1)
 	        {
@@ -117,10 +122,14 @@ namespace global_planner_turgut
 	        else child.potential = -distance_to_goal;
 
 	        //Extra cost of zig-zag
-	        float x = node_vector[node_vector[node_id].parent_id].result_x;
-	        float y = node_vector[node_vector[node_id].parent_id].result_y;
+	        if(node_id != 0)
+	        {
+	        	float x = node_vector[node_vector[node_id].parent_id].result_x;
+	        	float y = node_vector[node_vector[node_id].parent_id].result_y;
 
-	        if(sqrt(pow(x-child.result_x, 2) + pow(y-child.result_y, 2)) < prim_dist[i]) child.cost -= zig_zag_cost;
+	        	if(sqrt(pow(x-child.result_x, 2) + pow(y-child.result_y, 2)) < prim_dist[i]) child.cost -= zig_zag_cost;
+
+	        }
 
 	        
 
@@ -139,6 +148,8 @@ namespace global_planner_turgut
 	        	}
 	        	else samethingness = true;
 	        }
+
+
 
 
 

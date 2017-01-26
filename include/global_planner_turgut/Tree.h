@@ -98,6 +98,7 @@ namespace global_planner_turgut
 	    void set_wall_clearance(float);
 	    void set_goal_threshold(float, float);
 	    void set_gains(float, float, float);
+	    void set_zig_zag_cost(float);
 	    
 	    void initialize(costmap_2d::Costmap2D*);
 	    void grid_astar(const geometry_msgs::Pose &, const geometry_msgs::Pose &);

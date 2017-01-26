@@ -76,6 +76,11 @@ namespace global_planner_turgut
 		guide_gain = g;
 	}
 
+	void Tree::set_zig_zag_cost(float z)
+	{
+		zig_zag_cost = z;
+	}
+
 	void Tree::initialize(costmap_2d::Costmap2D* costmap)
 	{
 		costmap_ = costmap;

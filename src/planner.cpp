@@ -65,7 +65,7 @@ namespace global_planner_turgut
 		tree.set_goal_threshold(config.goal_thresh_trans, config.goal_thresh_rot);
 		tree.set_gains(config.pursue_gain, config.angle_gain, config.guide_gain);
 		tree.set_grid_resolution(config.grid_resolution_xy, config.grid_resolution_theta);
-
+		tree.set_zig_zag_cost(config.zig_zag_cost);
 
 	}
 
