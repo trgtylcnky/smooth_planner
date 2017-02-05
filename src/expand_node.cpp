@@ -1,6 +1,6 @@
-#include "global_planner_turgut/Tree.h"
+#include "smooth_planner/Tree.h"
 
-namespace global_planner_turgut
+namespace smooth_planner
 {
 	int Tree::expand_node(int node_id, const geometry_msgs::PoseStamped &goal)
 	{
@@ -176,14 +176,16 @@ namespace global_planner_turgut
 
 
 	            		final_node = child.id;
-	                		//std::cout << "reached to goal, interrupted\n";
+	                		std::cout << "reached to goal, interrupted\n";
 	            		return 1;
 	            	}
 
 	            	else
 	            	{
+	            		std::cout << "reached to goal without angle\n";
 	            		if(fabs(theta1) < best_found_angle)
 	            		{
+	            			std::cout << "better reach angle found at node: " << child.id << "\n";
 	            			best_found_angle = theta1;
 	            			final_node = child.id;
 

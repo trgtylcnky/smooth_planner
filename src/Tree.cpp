@@ -1,12 +1,12 @@
-#include "global_planner_turgut/Tree.h"
+#include "smooth_planner/Tree.h"
 
-namespace global_planner_turgut
+namespace smooth_planner
 {
 	Tree::Tree()
 	{
 		final_node = 0;
 
-		best_found_angle = 10;
+		best_found_angle = 999;
 
 		node starting_node;
 
@@ -132,7 +132,7 @@ namespace global_planner_turgut
 
 		node starting_node;
 
-		
+		best_found_angle = 999;
 
 		starting_node.parent_id = -1;
 		starting_node.cost = 0;

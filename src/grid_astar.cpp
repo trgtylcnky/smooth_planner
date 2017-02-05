@@ -1,6 +1,6 @@
-#include "global_planner_turgut/Tree.h"
+#include "smooth_planner/Tree.h"
 
-namespace global_planner_turgut
+namespace smooth_planner
 {
 		    //This function does a prior exploration
 		    //Find a path to guide later path finding

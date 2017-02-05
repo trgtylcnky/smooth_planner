@@ -1,20 +1,20 @@
 #include <pluginlib/class_list_macros.h>
-#include "global_planner_turgut/planner.h"
+#include "smooth_planner/planner.h"
 
 
-PLUGINLIB_EXPORT_CLASS(global_planner_turgut::GlobalPlannerTurgut, nav_core::BaseGlobalPlanner)
+PLUGINLIB_EXPORT_CLASS(smooth_planner::SmoothPlanner, nav_core::BaseGlobalPlanner)
 
 using namespace std;
 
-namespace global_planner_turgut
+namespace smooth_planner
 {
 
-	GlobalPlannerTurgut::GlobalPlannerTurgut()
+	SmoothPlanner::SmoothPlanner()
 	{
 
 	}
 
-	GlobalPlannerTurgut::GlobalPlannerTurgut(std::string name, costmap_2d::Costmap2DROS* costmap_ros)
+	SmoothPlanner::SmoothPlanner(std::string name, costmap_2d::Costmap2DROS* costmap_ros)
 	{
 		
 		initialize(name, costmap_ros);
@@ -25,12 +25,12 @@ namespace global_planner_turgut
 
 	}
 
-	GlobalPlannerTurgut::~GlobalPlannerTurgut()
+	SmoothPlanner::~SmoothPlanner()
 	{
 		delete reconfigure_server;
 	}
 
-	void GlobalPlannerTurgut::initialize(std::string name, costmap_2d::Costmap2DROS* costmap_ros)
+	void SmoothPlanner::initialize(std::string name, costmap_2d::Costmap2DROS* costmap_ros)
 	{
 		ros::NodeHandle nh;
 		costmap_ = costmap_ros->getCostmap();
@@ -47,15 +47,15 @@ namespace global_planner_turgut
 
 		max_iterations = 20000;
 		ros::NodeHandle node_private("~/" + name);
-		dynamic_reconfigure::Server<global_planner_turgut::GPlannerTurgutConfig>::CallbackType cb;
-		reconfigure_server = new dynamic_reconfigure::Server<global_planner_turgut::GPlannerTurgutConfig>(node_private);
-		cb = boost::bind(&GlobalPlannerTurgut::dynamic_reconfigure_callback, this, _1, _2);
+		dynamic_reconfigure::Server<smooth_planner::SmoothPlannerConfig>::CallbackType cb;
+		reconfigure_server = new dynamic_reconfigure::Server<smooth_planner::SmoothPlannerConfig>(node_private);
+		cb = boost::bind(&SmoothPlanner::dynamic_reconfigure_callback, this, _1, _2);
 		reconfigure_server->setCallback(cb);
 
 
 	}
 
-	void GlobalPlannerTurgut::dynamic_reconfigure_callback(global_planner_turgut::GPlannerTurgutConfig &config, uint32_t level)
+	void SmoothPlanner::dynamic_reconfigure_callback(smooth_planner::SmoothPlannerConfig &config, uint32_t level)
 	{
 		boost::recursive_mutex::scoped_lock cfl(configuration_mutex_);
 
@@ -69,7 +69,7 @@ namespace global_planner_turgut
 
 	}
 
-	bool GlobalPlannerTurgut::makePlan(
+	bool SmoothPlanner::makePlan(
 		const geometry_msgs::PoseStamped& start, 
 		const geometry_msgs::PoseStamped &goal, 
 		std::vector<geometry_msgs::PoseStamped>& plan )

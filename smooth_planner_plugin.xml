@@ -1,0 +1,5 @@
+<library path="lib/libsmooth_planner_lib">
+ <class name="smooth_planner/SmoothPlanner" type="smooth_planner::SmoothPlanner" base_class_type="nav_core::BaseGlobalPlanner">
+   <description>PhEnim gLobAl pEth 8ulucum xD xD xD</description>
+ </class>
+</library>

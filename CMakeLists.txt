@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(global_planner_turgut)
+project(smooth_planner)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -93,7 +93,7 @@ find_package(catkin REQUIRED COMPONENTS
 # )
 
 generate_dynamic_reconfigure_options(
-	cfg/GPlannerTurgut.cfg
+	cfg/SmoothPlanner.cfg
 )
 
 ###################################
@@ -107,7 +107,7 @@ generate_dynamic_reconfigure_options(
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
 #  INCLUDE_DIRS include
-#  LIBRARIES global_planner_turgut
+#  LIBRARIES smooth_planner
 #  CATKIN_DEPENDS nav_core roscpp
 #  DEPENDS system_lib
 )
@@ -124,7 +124,7 @@ include_directories(
 )
 
 ## Declare a C++ library
-add_library(global_planner_turgut_lib
+add_library(smooth_planner_lib
   src/planner.cpp
   src/Tree.cpp
   src/expand_node.cpp
@@ -135,19 +135,19 @@ add_library(global_planner_turgut_lib
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
 ## either from message generation or dynamic reconfigure
-# add_dependencies(global_planner_turgut_lib ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+# add_dependencies(smooth_planner_lib ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
-add_dependencies(global_planner_turgut_lib ${PROJECT_NAME}_gencfg)
+add_dependencies(smooth_planner_lib ${PROJECT_NAME}_gencfg)
 
 ## Declare a C++ executable
-# add_executable(global_planner_turgut_node src/global_planner_turgut_node.cpp)
+# add_executable(smooth_planner_node src/smooth_planner_node.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
-# add_dependencies(global_planner_turgut_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+# add_dependencies(smooth_planner_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-# target_link_libraries(global_planner_turgut_node
+# target_link_libraries(smooth_planner_node
 #   ${catkin_LIBRARIES}
 # )
 
@@ -166,7 +166,7 @@ add_dependencies(global_planner_turgut_lib ${PROJECT_NAME}_gencfg)
 # )
 
 ## Mark executables and/or libraries for installation
-# install(TARGETS global_planner_turgut global_planner_turgut_node
+# install(TARGETS smooth_planner smooth_planner_node
 #   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
@@ -191,7 +191,7 @@ add_dependencies(global_planner_turgut_lib ${PROJECT_NAME}_gencfg)
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_global_planner_turgut.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_smooth_planner.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()
